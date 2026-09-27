@@ -69,7 +69,20 @@ NVCC_ARCH_FLAGS := -arch=sm_80
 endif
 NVCCFLAGS += $(NVCC_ARCH_FLAGS)
 LDFLAGS =
-
+CALIPER_PREFIX := $(shell spack location -i caliper 2>/dev/null)
+CALIPER_CFLAGS =
+CALIPER_LDFLAGS =
+ifeq ($(NO_CALIPER),1)
+	
+else
+	ifeq ($(CALIPER_PREFIX),)
+        $(error Caliper introuvable via spack. Lancez 'spack find caliper' ou compilez avec NO_CALIPER=1)
+    endif
+	CALIPER_CFLAGS +=-I$(CALIPER_PREFIX)/include -DFWHT_WITH_CALIPER
+	CALIPER_LDFLAGS += -L$(CALIPER_PREFIX)/lib -lcaliper -Wl,-rpath,$(CALIPER_PREFIX)/lib
+    CFLAGS  += -I$(CALIPER_PREFIX)/include -DFWHT_WITH_CALIPER
+    LDFLAGS += -L$(CALIPER_PREFIX)/lib -lcaliper -Wl,-rpath,$(CALIPER_PREFIX)/lib
+endif
 # Platform Detection (early, needed for conditional source lists)
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -103,7 +116,8 @@ EXAMPLE3_SRC = $(EXAMPLES_DIR)/example_batch.c
 EXAMPLE3_BIN = $(EXAMPLES_DIR)/example_batch
 EXAMPLE4_SRC = $(EXAMPLES_DIR)/example_gpu_multi_precision.cu
 EXAMPLE4_BIN = $(EXAMPLES_DIR)/example_gpu_multi_precision
-
+EXAMPLE5_SRC = $(EXAMPLES_DIR)/example_batch_f64_contiguous.c
+EXAMPLE5_BIN = $(EXAMPLES_DIR)/example_batch_f64_contiguous
 # Source files (CPU)
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
@@ -191,7 +205,7 @@ ifeq ($(HAS_CUDA),1)
 	endif
 endif
 
-EXAMPLE_TARGETS = $(EXAMPLE_BIN) $(EXAMPLE2_BIN) $(EXAMPLE3_BIN)
+EXAMPLE_TARGETS = $(EXAMPLE_BIN) $(EXAMPLE2_BIN) $(EXAMPLE3_BIN) $(EXAMPLE5_BIN)
 ifeq ($(USE_CUDA),1)
 EXAMPLE_TARGETS += $(EXAMPLE4_BIN)
 endif
@@ -383,6 +397,10 @@ $(EXAMPLE4_BIN): $(EXAMPLE4_SRC) $(STATIC_LIB)
 	@echo "Building example: $@"
 	$(NVCC) $(NVCCFLAGS) $< -L$(LIB_DIR) -lfwht $(CUDA_LDFLAGS) -o $@ -Xlinker -rpath -Xlinker $(CURDIR)/$(LIB_DIR)
 endif
+
+$(EXAMPLE5_BIN): $(EXAMPLE5_SRC) $(STATIC_LIB)
+	@echo "Building example: $@"
+	$(CC) $(CFLAGS) $(CALIPER_CFLAGS) $(CALIPER_LDFLAGS) $< -L$(LIB_DIR) -lfwht -lm -o $@ -Wl,-rpath,$(CURDIR)/$(LIB_DIR) -Wl,-rpath,$(CALIPER_LDFLAGS)
 
 # Build and run GPU-specific tests (only if CUDA available)
 test-gpu: lib

@@ -36,6 +36,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <limits.h>
+#ifdef FWHT_WITH_CALIPER
+#include <caliper/cali.h>
+#endif
 
 /* Compiler-specific restrict keyword */
 #if defined(__GNUC__) || defined(__clang__)
@@ -1845,6 +1848,9 @@ fwht_status_t fwht_batch_f64_contiguous(fwht_context_t* ctx,
                                         double* data,
                                         size_t n,
                                         int batch_size) {
+    #ifdef FWHT_WITH_CALIPER
+    CALI_MARK_FUNCTION_BEGIN;
+    #endif
     fwht_backend_t backend;
 
     if (data == NULL) return FWHT_ERROR_NULL_POINTER;
@@ -1863,8 +1869,14 @@ fwht_status_t fwht_batch_f64_contiguous(fwht_context_t* ctx,
             if (status != FWHT_SUCCESS) {
                 return status;
             }
+            #ifdef FWHT_WITH_CALIPER
+            CALI_MARK_FUNCTION_END;
+            #endif
             return fwht_gpu_context_compute_f64(ctx->gpu_ctx, data, n, (size_t)batch_size);
         }
+        #ifdef FWHT_WITH_CALIPER
+        CALI_MARK_FUNCTION_END;
+        #endif
         return fwht_batch_f64_cuda(data, n, (size_t)batch_size);
     }
 #endif
@@ -1906,6 +1918,9 @@ fwht_status_t fwht_batch_f64_contiguous(fwht_context_t* ctx,
     #endif
 
         fwht_openmp_scope_end(&scope);
+        #ifdef FWHT_WITH_CALIPER
+        CALI_MARK_FUNCTION_END;
+        #endif
         return first_error;
     }
 #endif
@@ -1914,7 +1929,9 @@ fwht_status_t fwht_batch_f64_contiguous(fwht_context_t* ctx,
         fwht_status_t status = fwht_f64_backend(data + (size_t)i * n, n, backend);
         if (status != FWHT_SUCCESS) return status;
     }
-
+    #ifdef FWHT_WITH_CALIPER
+    CALI_MARK_FUNCTION_END;
+    #endif
     return FWHT_SUCCESS;
 }
 
