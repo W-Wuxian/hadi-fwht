@@ -1,4 +1,5 @@
 # Build artifacts
+m4/
 build/
 lib/
 *.o
@@ -29,7 +30,9 @@ python/venv/
 examples/example_basic
 examples/example_boolean_packed
 bench/compare_fftw_fwht
-
+examples/example_batch
+examples/example_batch_f64_contiguous
+install/
 # Optional third-party clones and some temporary files
 otherlabs/
 references/
